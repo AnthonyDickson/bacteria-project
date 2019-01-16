@@ -18,8 +18,14 @@ def timed(func):
 
     def wrapper(*args, **kwargs):
         start = time()
+
         result = func(*args, **kwargs)
-        print('Elapsed time: %.2fs.' % (time() - start))
+
+        elapsed = time() - start
+        mins = elapsed // 60
+        secs = int(elapsed % 60)
+
+        print('Elapsed time: %02dm %02ds' % (mins, secs))
 
         return result
 
@@ -79,6 +85,28 @@ class Experiment:
         self.cv = RepeatedStratifiedKFold(n_splits=3, n_repeats=20,
                                           random_state=random_seed)
 
+        self.tests = {
+            'naive_bayes': lambda it: self.naive_bayes_test(it),
+            'svm': lambda it: self.svm_test(it),
+            'random_forest_stumps':
+                lambda it: self.random_forest_test(it,
+                                                   n_estimators=512,
+                                                   max_depth=1),
+            'random_forest':
+                lambda it: self.random_forest_test(it,
+                                                   n_estimators=512,
+                                                   max_depth=3),
+            'adaboost_stumps':
+                lambda it: self.adaboost_test(it,
+                                              n_estimators=256,
+                                              max_depth=1),
+            'adaboost':
+                lambda it: self.adaboost_test(it,
+                                              n_estimators=256,
+                                              max_depth=3)
+
+        }
+
     def _create_X_y(self):
         """Create the X, X_pca and y data sets."""
         if isinstance(self.growth_phases, list):
@@ -96,7 +124,7 @@ class Experiment:
         elif isinstance(self.growth_phases, str):
             for it in Experiment.integration_times:
                 self.X[it] = self.data[it].T
-                self.X[it].add_prefix('%s_' % self.growth_phases)
+                self.X[it] = self.X[it].add_prefix('%s_' % self.growth_phases)
         else:
             raise TypeError(
                 'Invalid type for parameter growth_phases. Expected a list or'
@@ -157,16 +185,8 @@ class Experiment:
 
             results[it] = {}
 
-            results[it]['naive_bayes'] = self.naive_bayes_test(it)
-            results[it]['svm'] = self.svm_test(it)
-            results[it]['random_forest_stumps'] = \
-                self.random_forest_test(it, n_estimators=512, max_depth=1)
-            results[it]['random_forest'] = \
-                self.random_forest_test(it, n_estimators=512, max_depth=3)
-            results[it]['adaboost_stumps'] = \
-                self.adaboost_test(it, n_estimators=256, max_depth=1)
-            results[it]['adaboost'] = \
-                self.adaboost_test(it, n_estimators=256, max_depth=3)
+            for test in self.tests:
+                results[it][test] = self.tests[test](it)
 
         print('All tests done.')
 
