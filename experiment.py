@@ -56,6 +56,8 @@ class Experiment:
         if growth_phases == 'all':
             growth_phases = Experiment.growth_phases.copy()
 
+        self.growth_phases = growth_phases
+
         df_16ms = pd.read_csv('data/bacteria_16ms.csv',
                               header=[0, 1, 2, 3],
                               index_col=0)
@@ -68,10 +70,6 @@ class Experiment:
             '32ms': df_32ms[growth_phases]
         }
 
-        for df in self.data.values():
-            if df.isnull().values.any():
-                df.dropna(axis=0, inplace=True)
-
         self.X = {}
         self.X_pca = {}
         self.y = {}
@@ -83,25 +81,26 @@ class Experiment:
 
     def _create_X_y(self):
         """Create the X, X_pca and y data sets."""
-        if isinstance(Experiment.growth_phases, list):
+        if isinstance(self.growth_phases, list):
             for it in Experiment.integration_times:
                 dfs = []
 
-                for gp in Experiment.growth_phases:
-                    gp_df = self.data[it].T
+                for gp in self.growth_phases:
+                    gp_df = self.data[it][gp].T
                     gp_df = gp_df.add_prefix('%s_' % gp)
 
                     dfs.append(gp_df)
 
                 self.X[it] = pd.concat(dfs, axis=1)
-        elif isinstance(Experiment.growth_phases, str):
+                self.X[it] = self.X[it].dropna(axis=0)
+        elif isinstance(self.growth_phases, str):
             for it in Experiment.integration_times:
                 self.X[it] = self.data[it].T
-                self.X[it].add_prefix('%s_' % Experiment.growth_phases)
+                self.X[it].add_prefix('%s_' % self.growth_phases)
         else:
             raise TypeError(
                 'Invalid type for parameter growth_phases. Expected a list or'
-                ' a string, instead got a %s' % type(Experiment.growth_phases))
+                ' a string, instead got a %s' % type(self.growth_phases))
 
         for it in Experiment.integration_times:
             self.y[it] = self.X[it].reset_index()['species']
@@ -136,6 +135,15 @@ class Experiment:
         for it in Experiment.integration_times:
             self.X[it], self.y[it] = shuffle(self.X[it], self.y[it],
                                              random_state=self.random_seed)
+
+    def _get_X_y(self, integration_time):
+        """Get the X, X_pca, and y data sets for the given integration time.
+
+        Returns: a three-tuple containing the X, X_pca, and y data sets for the
+                 given integration time.
+        """
+        return (self.X[integration_time], self.X_pca[integration_time],
+                self.y[integration_time])
 
     @timed
     def run(self):
@@ -188,15 +196,6 @@ class Experiment:
         results['pca'] = scores
 
         return results
-
-    def _get_X_y(self, integration_time):
-        """Get the X, X_pca, and y data sets for the given integration time.
-
-        Returns: a three-tuple containing the X, X_pca, and y data sets for the
-                 given integration time.
-        """
-        return (self.X[integration_time], self.X_pca[integration_time],
-                self.y[integration_time])
 
     @timed
     def naive_bayes_test(self, integration_time):
@@ -358,10 +357,10 @@ class Experiment:
 
             original_barplot = ax.bar(x=idx, height=df_original['mean_score'],
                                       width=width,
-                                      yerr=df_original['score_std'])
+                                      yerr=2 * df_original['score_std'])
 
             pca_barplot = ax.bar(x=idx + width, height=df_pca['mean_score'],
-                                 width=width, yerr=df_pca['score_std'])
+                                 width=width, yerr=2 * df_pca['score_std'])
 
             # Add labels to plot. #
             ax.set_title('Classification Scores for Integration Time of '
@@ -405,6 +404,7 @@ class Experiment:
                               ascending=[False, True])
         best = best.reset_index(drop=True)
         best['mean_score'] = best['mean_score'].map('{:.2f}'.format)
+        best['score_std'] = 2 * best['score_std']
         best['score_std'] = best['score_std'].map('{:.2f}'.format)
 
         return best.head(3)
@@ -418,37 +418,10 @@ class GramnessExperiment(Experiment):
 
     def _create_X_y(self):
         """Create the X, X_pca and y data sets."""
-        if isinstance(Experiment.growth_phases, list):
-            for it in Experiment.integration_times:
-                dfs = []
-
-                for gp in Experiment.growth_phases:
-                    gp_df = self.data[it].T
-                    gp_df = gp_df.add_prefix('%s_' % gp)
-
-                    dfs.append(gp_df)
-
-                self.X[it] = pd.concat(dfs, axis=1)
-        elif isinstance(Experiment.growth_phases, str):
-            for it in Experiment.integration_times:
-                self.X[it] = self.data[it].T
-                self.X[it].add_prefix('%s_' % Experiment.growth_phases)
-        else:
-            raise TypeError(
-                'Invalid type for parameter growth_phases. Expected a list or'
-                ' a string, instead got a %s' % type(Experiment.growth_phases))
+        super()._create_X_y()
 
         for it in Experiment.integration_times:
             self.y[it] = self.X[it].reset_index()['gramness']
-
-        self._scale_X()
-        self._shuffle_X_y()
-
-        for it in Experiment.integration_times:
-            pca = PCA(n_components=0.99, svd_solver='full')
-            pca.fit(self.X[it])
-
-            self.X_pca[it] = pca.transform(self.X[it])
 
 
 if __name__ == '__main__':
