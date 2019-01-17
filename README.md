@@ -93,7 +93,7 @@ There are also a number of notebooks where experiments were run individually. Th
 
 # Summary of Results
 ## Species Classification
-Overall, none of models are able to produce good results when classifying bacteria species. The best classification accuracy was 59% (+/- 12%) using a CNN. 
+Overall, none of models are able to produce good results when classifying bacteria species. The best classification accuracy was 59% (+/- 12%) using a SVM. 
 Since, in the case of using all growth phase data, there are about 12 samples in the majority class out of a total of 39 samples, the best score a classifier could get by consistently guessing the majority class would be around 30%. So 59% is quite a bit better than random guessing, however it is still too unreliable for practical use. 
 
 ## Gram-ness Classification
