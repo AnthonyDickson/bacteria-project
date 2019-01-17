@@ -9,13 +9,15 @@ In this project a series of machine-learning algorithms are used to try classify
 
     Otherwise, make sure you python environment is set up with packages listed in the file `environment.yml`
 2. Open the jupyter notebook `Data Preparation.ipynb` and run it.
-3. Open and run one of the jupyter notebooks in the root directory or in the directory `individual/`.
+3. Open and run one of the jupyter notebooks in the root directory or in the directory `individual_experiments/`.
 
 ## Data
 The data consists of fluorescence spectra readings from six different species of bacteria: Bacillus cereus, Listeria monocytogenes, Staphylococcus aureus, Salmonella enterica, Escherichia coli, and Pseudomonas aureginosa.
-For each bacteria sample there are spectra readings for about 1043 different wavelengths of light and the three growth phases: lag, log, and stat (stationary). This means that for each bacteria sample there are 3 * 1304 data points. Furthermore, the spectra readings are generated with two different integration times (time spent gathering the spectra reading), 16ms and 32ms. 
+For each bacteria sample there are spectra readings for about 1043 different wavelengths of light and the three growth phases: lag, log, and stat (stationary). This means that for each bacteria sample there are 3 * 1304 data points. Furthermore, the spectra readings are generated with two different integration times (time spent gathering the spectra reading), 16ms and 32ms. Integration time is the time spent gathering each fluorescence spectra reading. Shorter integration times seem to be preferred.
 
 When looking at a single growth phase, the data is used as-is. However when using all growth phases, the bacteria samples that do not have data for all three growth phases are discarded. There are 47, 41, and 47 bacteria samples for the lag, log and stationary growth phases, respectively. There are 39 bacteria samples with data for all three growth phases. The class balance within each of the subsets are analysed in the jupyter notebook `Data Analysis.ipynb`.
+
+Within each bacteria species there are a number of replicates. A replicate is a copy of the bacteria species at possibly different concentration levels.
 
 There are some large numbers in the dataset (some spectra readings exceed 25,000). This poses a problem when training SVM models that use the linear kernel as the linear kernel is very slow for large values. For example, a SVM using the rbf kernel would take less than ~0.1 second to train while a SVM using could take up to ~16 minutes to train. To mitigate this effect I scaled the data into the interval [0.0, 1.0]. However, scaling is done 'globally' as opposed to scaling each feature individually as is done in the sklearn scaling libraries. This retains the relative scale between features. It is important to keep the relative scaling between features because technically all the features in this dataset are readings of the same feature. Ignoring relative scale and scaling on a per-feature basis worsens classification peformance.
 
@@ -42,7 +44,7 @@ There are two sets of labels used for classification:
 Refer to the notebooks `Data Preparation.ipynb` and `Data Analysis.ipynb` for more details about the dataset and data. 
 
 ## Models
-The classifiers used in the experiments are:
+The models used in the experiments are:
 1. Naive Bayes
 2. SVM
 3. RandomForest with Decision Stumps
@@ -87,7 +89,7 @@ Brief summaries of the results are given with a table listing the top three conf
 The code for these experiments can be found in python module `experiments`.
 Results can be found in the jupyter notebooks `Classification-Species.ipynb` and `Classification-Gramness.ipynb`.
 
-There are also a number of notebooks where experiments were run individually. The code and results for these experiments can be found in the various notebooks under the directory `individual/`.
+There are also a number of notebooks where experiments were run individually. The code and results for these experiments can be found in the various notebooks under the directory `individual_experiments/`. Most of these individual experiments are covered in the two jupyter notebooks mentioned above. The notebooks that may be of interest are the notebooks that deal with upsampling and other CNN architectures, i.e. notebooks that end with `-upsampling.ipynb` or notebooks starting with `CNN-`.
 
 # Summary of Results
 ## Species Classification
@@ -97,4 +99,4 @@ Since, in the case of using all growth phase data, there are about 12 samples in
 ## Gram-ness Classification
 Classifying gram-ness seems to alleviate the class imbalance problem encountered when classifying bacteria species.
 
-Overall, the classification scores for gram-ness were much better than the scores for species classification. Both the SVM and CNN models were able to achieve 98% (+/- 2~7%) accuracy on the log growth phase data. 
+Overall, the classification scores for gram-ness were much better than the scores for species classification. Many models were able to achieve 98% (+/- 2~7%) accuracy on the log growth phase data. 
