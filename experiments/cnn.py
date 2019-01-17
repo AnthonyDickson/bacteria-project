@@ -1,3 +1,13 @@
+"""The cnn experiment suite runs a series of classification tests on the bacteria
+fluorescence spectra data using several classifiers from scikit-learn and a
+convolutional neural network.
+
+There are two main classes: CNNExperiment and CNNGramnessExperiment. They share
+identical functionality except the former is classifying bacteria species and
+the latter is classifying whether a given bacteria sample is gram positive or
+gram negative.
+"""
+
 from time import time
 
 import numpy as np
@@ -9,12 +19,21 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv1D, Dense, GlobalAvgPool1D
 
-from experiments.experiment import timed, Experiment
+from experiments.sklearn import timed, Experiment
 
 
 class CNNExperiment(Experiment):
     """Runs a series of classification tests on the bacteria fluorescence
     dataset.
+
+    Tests the following classifiers:
+    - GaussianNB (Naive Bayes)
+    - SVM
+    - RandomForest with decision stumps
+    - RandomForest with decision trees
+    - AdaBoost with decision stumps
+    - AdaBoost with decision trees
+    - Convolutional Neural Network.
     """
     def __init__(self, growth_phases='all', n_jobs=-1, random_seed=42):
         self.X_cnn = {}
@@ -23,6 +42,9 @@ class CNNExperiment(Experiment):
 
         self.tests['cnn'] = \
             lambda integration_time: self.cnn_test(integration_time)
+
+        _, self.W, self.C = self.X_cnn['16ms'].shape
+        self.k = len(np.unique(self.y['16ms']))
 
     def _create_X_y(self):
         super()._create_X_y()
@@ -67,19 +89,18 @@ class CNNExperiment(Experiment):
         X = self.X_cnn[integration_time]
         y = self.y[integration_time].values.reshape(-1, 1)
 
-        _, W, C = X.shape
-        k = len(np.unique(y))
-
+        print('Finding optimal number of epochs.')
         n_epochs = self.optimal_cnn_epochs(X, y)
-        n_splits = 3
-        n_repeats = 20
+        print('Optimal number of epochs was %d.' % n_epochs)
+
+        n_splits = self.n_splits
+        n_repeats = self.n_repeats
         n_total = n_splits * n_repeats
-        score_history = []
-        print('Fitting %d folds over %d repetitions for a total of %d fits.'
-              % (n_splits, n_repeats, n_total))
 
         i = 0
         start = time()
+
+        score_history = []
 
         def print_progress(epoch, _):
             msg = 'Iteration %d/%d' % (i + 1, n_total)
@@ -118,7 +139,7 @@ class CNNExperiment(Experiment):
             y_train_cv = ohe.fit_transform(y_train_cv)
             y_val_cv = ohe.fit_transform(y_val_cv)
 
-            model = CNNExperiment.get_model((W, C), k)
+            model = self.get_model()
 
             history = model.fit(X_train_cv, y_train_cv,
                                 epochs=n_epochs,
@@ -137,31 +158,62 @@ class CNNExperiment(Experiment):
 
         return {'original': score_history}
 
-    @staticmethod
-    def get_model(input_shape, n_classes):
+    def get_model(self):
         """Get an instance of CNN model.
-
-        Arguments:
-            input_shape: The shape that the model should expect. This should
-                         be a 2-tuple containing the width and number of
-                         channels.
-            n_classes: How many classes the model should expect to classify.
 
         Returns: the compiled CNN model.
         """
         model = Sequential()
         model.add(Conv1D(32, kernel_size=3, activation='elu',
-                         input_shape=input_shape))
+                         input_shape=(self.W, self.C)))
         model.add(Conv1D(64, kernel_size=3, activation='elu'))
 
         model.add(GlobalAvgPool1D())
-        model.add(Dense(n_classes, activation='softmax'))
+        model.add(Dense(self.k, activation='softmax'))
 
         model.compile(loss=tf.keras.losses.categorical_crossentropy,
                       optimizer=tf.keras.optimizers.RMSprop(),
                       metrics=['accuracy'])
 
         return model
+
+    def optimal_cnn_epochs(self, X, y):
+        """Find the 'optimal' number of epochs to train the CNN model.
+
+        Here optimal means the approximate number of epochs before the
+        validation loss starts to increase again.
+
+        Arguments:
+            X: the feature data to train on.
+            y: the labels to classify for.
+
+        Returns: the number of epochs that is estimated to be optimal.
+        """
+        model = self.get_model()
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y,
+                                                            test_size=0.2,
+                                                            random_state=42)
+
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                          patience=10, )
+
+        epoch_progress_logger = tf.keras.callbacks.LambdaCallback(
+            on_epoch_begin=lambda epoch, _: print('Epoch %d/1000' % epoch,
+                                                  end='\r')
+        )
+
+        ohe = OneHotEncoder(sparse=False)
+        y_train_encoded = ohe.fit_transform(y_train)
+        y_test_encoded = ohe.fit_transform(y_test)
+
+        model.fit(X_train, y_train_encoded,
+                  epochs=1000,
+                  validation_data=(X_test, y_test_encoded),
+                  callbacks=[early_stopping, epoch_progress_logger],
+                  verbose=0)
+
+        return CNNExperiment.n_train_epochs(early_stopping.stopped_epoch)
 
     @staticmethod
     def n_train_epochs(stopped_epoch, to_nearest=100, min_epochs=100):
@@ -199,60 +251,20 @@ class CNNExperiment(Experiment):
         else:
             return result
 
-    @staticmethod
-    def optimal_cnn_epochs(X, y):
-        """Find the 'optimal' number of epochs to train the CNN model.
-
-        Here optimal means the approximate number of epochs before the
-        validation loss starts to increase again.
-
-        Arguments:
-            X: the feature data to train on.
-            y: the labels to classify for.
-
-        Returns: the number of epochs that is estimated to be optimal.
-        """
-        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y,
-                                                            test_size=0.2,
-                                                            random_state=42)
-
-        N, W, C = X_train.shape
-        k = len(np.unique(y))
-
-        model = CNNExperiment.get_model((W, C), k)
-
-        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                          patience=10, )
-
-        ohe = OneHotEncoder(sparse=False)
-        y_train_encoded = ohe.fit_transform(y_train)
-        y_test_encoded = ohe.fit_transform(y_test)
-
-        epoch_progress_logger = tf.keras.callbacks.LambdaCallback(
-            on_epoch_begin=lambda epoch, _: print('Epoch %d/1000' % epoch,
-                                                  end='\r')
-        )
-
-        print('Finding optimal number of epochs.')
-        model.fit(X_train, y_train_encoded,
-                  epochs=1000,
-                  validation_data=(X_test, y_test_encoded),
-                  callbacks=[early_stopping, epoch_progress_logger],
-                  verbose=0)
-
-        score = model.evaluate(X_test, y_test_encoded, verbose=0)
-        n_epochs = CNNExperiment.n_train_epochs(early_stopping.stopped_epoch)
-        print('Optimal number of epochs was %d.' % n_epochs)
-        print('Test loss: %.2f' % score[0])
-        print('Test accuracy: %.2f' % score[1])
-
-        return n_epochs
-
 
 class CNNGramnessExperiment(CNNExperiment):
     """Runs a series of classification tests on the bacteria fluorescence
     dataset where the problem is simplified to classifying gramness
     (positive/negative.
+
+    Tests the following classifiers:
+    - GaussianNB (Naive Bayes)
+    - SVM
+    - RandomForest with decision stumps
+    - RandomForest with decision trees
+    - AdaBoost with decision stumps
+    - AdaBoost with decision trees
+    - Convolutional Neural Network.
     """
 
     def _create_X_y(self):

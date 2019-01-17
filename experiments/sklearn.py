@@ -1,3 +1,13 @@
+"""The sklearn experiment suite runs a series of classification tests on the
+bacteria fluorescence spectra data using several classifiers from scikit-learn.
+
+There are two main classes: Experiment and GramnessExperiment. They share
+identical functionality except the former is classifying bacteria species and
+the latter is classifying whether a given bacteria sample is gram positive or
+gram negative.
+"""
+
+from functools import wraps
 from time import time
 
 import matplotlib.pyplot as plt
@@ -16,6 +26,7 @@ from sklearn.utils import shuffle
 def timed(func):
     """A simple decorator that prints the elapsed time of the function call."""
 
+    @wraps(func)
     def wrapper(*args, **kwargs):
         start = time()
 
@@ -35,6 +46,14 @@ def timed(func):
 class Experiment:
     """Runs a series of classification tests on the bacteria fluorescence
     dataset.
+
+    Tests the following scikit-learn classifiers:
+    - GaussianNB (Naive Bayes)
+    - SVM
+    - RandomForest with decision stumps
+    - RandomForest with decision trees
+    - AdaBoost with decision stumps
+    - AdaBoost with decision trees.
     """
     growth_phases = ['lag', 'log', 'stat']
     integration_times = ['16ms', '32ms']
@@ -82,7 +101,10 @@ class Experiment:
 
         self._create_X_y()
 
-        self.cv = RepeatedStratifiedKFold(n_splits=3, n_repeats=20,
+        self.n_splits = 3
+        self.n_repeats = 20
+        self.cv = RepeatedStratifiedKFold(n_splits=self.n_splits,
+                                          n_repeats=self.n_repeats,
                                           random_state=random_seed)
 
         self.tests = {
@@ -434,6 +456,14 @@ class GramnessExperiment(Experiment):
     """Runs a series of classification tests on the bacteria fluorescence
     dataset where the problem is simplified to classifying gramness
     (positive/negative.
+
+    Tests the following scikit-learn classifiers:
+    - GaussianNB (Naive Bayes)
+    - SVM
+    - RandomForest with decision stumps
+    - RandomForest with decision trees
+    - AdaBoost with decision stumps
+    - AdaBoost with decision trees.
     """
 
     def _create_X_y(self):
