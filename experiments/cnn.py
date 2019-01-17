@@ -148,6 +148,8 @@ class CNNExperiment(Experiment):
                                 verbose=0)
 
             score_history.append(history.history['val_acc'][-1])
+            
+            tf.keras.backend.clear_session()
 
             i += 1
 
