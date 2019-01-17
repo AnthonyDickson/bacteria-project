@@ -435,10 +435,15 @@ class Experiment:
 
         return fig, axes
 
-    def top_three(self):
-        """Get the top three configurations and their scores.
+    def top_configurations(self, n=3):
+        """Get the top `n` configurations and their scores.
 
         Should be called after run().
+
+        Arguments:
+            n: how many configurations to return.
+
+        Returns: a DataFrame detailing `n` configurations and their scores.
         """
         df = self._results_df()
 
@@ -449,7 +454,7 @@ class Experiment:
         best['score_std'] = 2 * best['score_std']
         best['score_std'] = best['score_std'].map('{:.2f}'.format)
 
-        return best.head(3)
+        return best.head(n)
 
 
 class GramnessExperiment(Experiment):

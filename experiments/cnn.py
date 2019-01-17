@@ -89,9 +89,9 @@ class CNNExperiment(Experiment):
         X = self.X_cnn[integration_time]
         y = self.y[integration_time].values.reshape(-1, 1)
 
-        print('Finding optimal number of epochs.')
+        print('Finding suitable number of epochs.')
         n_epochs = self.optimal_cnn_epochs(X, y)
-        print('Optimal number of epochs was %d.' % n_epochs)
+        print('Number of epochs is %d.' % n_epochs)
 
         n_splits = self.n_splits
         n_repeats = self.n_repeats
@@ -156,7 +156,7 @@ class CNNExperiment(Experiment):
                                              2 * score_history.std()))
         print('\nPCA Accuracy: N/A')
 
-        return {'original': score_history}
+        return {'original': score_history, 'pca': np.array([])}
 
     def get_model(self):
         """Get an instance of CNN model.

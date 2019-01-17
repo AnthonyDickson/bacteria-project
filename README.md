@@ -1,36 +1,45 @@
 # Classification of Bacteria with Fluorescence Spectra
+In this project a series of machine-learning algorithms are used to try classify bacteria based on fluorescence spectra data.
+
+## Getting Started
+1. If you are using conda you can create the conda environment used for the project with command:
+    ```shell
+    $ conda env create -f environment.yml
+    ```
+
+    Otherwise, make sure you python environment is set up with packages listed in the file `environment.yml`
+2. Open the jupyter notebook `Data Preparation.ipynb` and run it.
+3. Open and run one of the jupyter notebooks in the root directory or in the directory `individual/`.
+
 ## Data
 The data consists of fluorescence spectra readings from six different species of bacteria: Bacillus cereus, Listeria monocytogenes, Staphylococcus aureus, Salmonella enterica, Escherichia coli, and Pseudomonas aureginosa.
 For each bacteria sample there are spectra readings for about 1043 different wavelengths of light and the three growth phases: lag, log, and stat (stationary). This means that for each bacteria sample there are 3 * 1304 data points. Furthermore, the spectra readings are generated with two different integration times (time spent gathering the spectra reading), 16ms and 32ms. 
 
-When looking at a single growth phase, the data is used as-is. However, when using all growth phases the bacteria samples that do not have data for all three growth phases are discarded. There are 47, 41, and 47 bacteria samples for the lag, log and stationary growth phases, respectively. The are 39 bacteria samples with data for all three growth phases.
+When looking at a single growth phase, the data is used as-is. However when using all growth phases, the bacteria samples that do not have data for all three growth phases are discarded. There are 47, 41, and 47 bacteria samples for the lag, log and stationary growth phases, respectively. There are 39 bacteria samples with data for all three growth phases. The class balance within each of the subsets are analysed in the jupyter notebook `Data Analysis.ipynb`.
 
 There are some large numbers in the dataset (some spectra readings exceed 25,000). This poses a problem when training SVM models that use the linear kernel as the linear kernel is very slow for large values. For example, a SVM using the rbf kernel would take less than ~0.1 second to train while a SVM using could take up to ~16 minutes to train. To mitigate this effect I scaled the data into the interval [0.0, 1.0]. However, scaling is done 'globally' as opposed to scaling each feature individually as is done in the sklearn scaling libraries. This retains the relative scale between features. It is important to keep the relative scaling between features because technically all the features in this dataset are readings of the same feature. Ignoring relative scale and scaling on a per-feature basis worsens classification peformance.
 
 There are two sets of labels used for classification: 
 1.  the species of a given bacteria sample, which are:
-    - Bc - Bacillus cereus 
-    - lm - Listeria monocytogenes
-    - sa - Staphylococcus aureus 
-    - se - Salmonella enterica
-    - ec - Escherichia coli
-    - pa - Pseudomonas aureginosa
+    - Bacillus Cereus (bc)
+    - Escherichia Coli (ec)
+    - Listeria Monocytogenes (lm)
+    - Pseudomonas Aureginosa (pa)
+    - Staphylococcus Aureus (sa) 
+    - Salmonella Enterica (se)
 
-2. the 'gram-ness' of the given bacteria sample, i.e. whether or not the given bacteria would test positive in the [gram stain test](https://en.wikipedia.org/wiki/Gram_stain). These groupings for the bacteria in the dataset are:
+2. the 'gram-ness' of a given bacteria sample, i.e. whether the given bacteria would test positive or negative in the [gram stain test](https://en.wikipedia.org/wiki/Gram_stain). The groupings for the bacteria in the dataset are:
+    - Gram-positive
+        - Bacillus Cereus 
+        - Listeria Monocytogenes
+        - Staphylococcus Aureus 
 
-    - Gram positive
-        - Bc - Bacillus cereus 
-        - lm - Listeria monocytogenes
-        - sa - Staphylococcus aureus 
+    - Gram-negative
+        - Escherichia Coli
+        - Pseudomonas Aureginosa
+        - Salmonella Enterica
 
-    - Gram negative
-        - se - Salmonella enterica
-        - ec - Escherichia coli
-        - pa - Pseudomonas aureginosa
-    
-Setting the labels to the gram-ness seems to alleviate the class imbalance problem encountered when classifying bacteria species.
-
-Refer to the notebooks `Data Preparation.ipynb` and `Data Analysis.ipynb` for more info on how the dataset is structured and looks like. 
+Refer to the notebooks `Data Preparation.ipynb` and `Data Analysis.ipynb` for more details about the dataset and data. 
 
 ## Models
 The classifiers used in the experiments are:
@@ -63,31 +72,29 @@ A global average pooling layer is used instead of flattening and it significantl
 The CNN is trained with the RMSprop optimiser using the default settings.
 
 ## Methodology
-### Scikit-Learn Models
-The following methodology applies to the experiments run on the first six models of the seven listed in the section above.
-
 An experiment refers to a sequence of tests which evaluate the performance of various models. An experiment is run for the entire dataset and again for each subset of the dataset, where a subset is simply the data from a single growth phase. In each experiment I run the same series of tests twice, once for each integration time. 
 
-Each model is evaluated using both the original, untransformed data and a PCA transformed version of the data. Models are evaluated using repeated stratified k-fold cross validation where the data is split into three folds (n_splits) 20 times (n_repeats). The scores given for both the untransformed data and the PCA data consist of the mean score over all the 60 indvidual folds +/- two standard deviations.
+Each model is evaluated using both the original, untransformed data and a PCA transformed version of the data (with the expception of the CNN model, which is only tested on the original data). The number of components kept in the PCA transformed data is automatically set to the minimum number of components needed to explain 99% of the variance in the data. 
 
-The random state is set to the same value across different modules (e.g. train_test_split, RandomForest initialisation) to ensure results can be reproduced consistently.
+I utilise cross-validation to make sure the performance achieved by the models are not achieved by just random chance. Models are evaluated using repeated stratified k-fold cross validation which does 3-fold cross-validation 20 times. The scores given for both the untransformed data and the PCA data are mean score over all the 60 indvidual folds +/- two standard deviations.
+
+To help prevent overfitting in CNN I first train a single instance of the CNN model before performing cross-validation. I train the model for 1000 episodes and use early stopping so that training is stopped if the validation loss does not decrease for more than 10 epochs. I then round the epoch that was stopped on down the nearest 100. 
+
+The random state is set to the same value across different modules (e.g. train_test_split, RandomForest initialisation) to ensure results can be reproduced consistently. I have not covered every case or have I even been very thorough with this, but I believe I have done enough to ensure that the data is always split in the same way and ensemble models like RandomForest have the same sub-models.
 
 Brief summaries of the results are given with a table listing the top three configurations (in terms of both data and models) and a bar chart comparing classification scores across each configuration. The black lines on the bars in the bar chart indicate the +/- two standard deviation ranges.
 
-The code for these experiments can be found under the file `experiment.py`.
+The code for these experiments can be found in python module `experiments`.
 Results can be found in the jupyter notebooks `Classification-Species.ipynb` and `Classification-Gramness.ipynb`.
 
-### CNN Experiments
-The CNN experiments are largely kept the same. The only things that are changed between experiments is the number of epochs the model is trained for, and the subset of the dataset that is used for training. The number of epochs is decided on by training the model once for 1000 epochs and using early stopping to stop once the validation loss stops decreasing. A plot of the accuracy and loss curves are then produced and from there I judged the approximate number of epochs the model needs to be trained for.
-
-Once the number of epochs has been decided, I then train the model again using the same repeated stratified k-fold cross validation as in the previous section (three folds and 20 repititions). Afterwards, the mean validation score for the last epoch of each of the 60 folds is calculated. Also, accuracy curves and loss curves are plotted along with the shaded areas covered by +/- two standard deviations for each metric. 
-
-Results and code for each CNN experiment can be found in the notebooks whose filename starts with `CNN-`. 
+There are also a number of notebooks where experiments were run individually. The code and results for these experiments can be found in the various notebooks under the directory `individual/`.
 
 # Summary of Results
 ## Species Classification
 Overall, none of models are able to produce good results when classifying bacteria species. The best classification accuracy was 59% (+/- 12%) using a CNN. 
-Since, in the case of using all growth phase data, there are about 12 samples in the majority class out of a total of 39 samples, the best score a classifier could get by consistently guessing the majority class would be around 30%. So while 59% is quite a bit better, it is still too unreliable for practical use. 
+Since, in the case of using all growth phase data, there are about 12 samples in the majority class out of a total of 39 samples, the best score a classifier could get by consistently guessing the majority class would be around 30%. So 59% is quite a bit better than random guessing, however it is still too unreliable for practical use. 
 
 ## Gram-ness Classification
+Classifying gram-ness seems to alleviate the class imbalance problem encountered when classifying bacteria species.
+
 Overall, the classification scores for gram-ness were much better than the scores for species classification. Both the SVM and CNN models were able to achieve 98% (+/- 2~7%) accuracy on the log growth phase data. 
