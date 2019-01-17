@@ -156,9 +156,9 @@ class CNNExperiment(Experiment):
         score_history = np.array(score_history)
         print('\nAccuracy: %.2f +/- %.2f' % (score_history.mean(),
                                              2 * score_history.std()))
-        print('\nPCA Accuracy: N/A')
+        print('PCA Accuracy: N/A')
 
-        return {'original': score_history, 'pca': np.array([])}
+        return {'original': score_history, 'pca': np.array([0])}
 
     def get_model(self):
         """Get an instance of CNN model.

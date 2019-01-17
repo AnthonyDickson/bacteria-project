@@ -379,12 +379,10 @@ class Experiment:
 
         n_rows = 1
         n_cols = 2
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 8))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(22, 8), sharey=True)
         subplot_i = 0
 
         for ax, it in zip(axes, ['16ms', '32ms']):
-            subplot_i += 1
-
             # Select data. #
             original = df['dataset'] == 'original'
             pca = df['dataset'] == 'pca'
@@ -410,7 +408,10 @@ class Experiment:
             ax.set_xticks(idx + width / 2)
             ax.set_xticklabels(df['classifier'].unique())
             ax.set_xlabel('Classifier')
-            ax.set_ylabel('Classification Score')
+
+            # Only add ylabel for leftmost subplots. #
+            if subplot_i % n_cols == 0:
+                ax.set_ylabel('Classification Score')
 
             # Attach a text label above each bar displaying its height. #
             for barplot in [original_barplot, pca_barplot]:
@@ -430,6 +431,8 @@ class Experiment:
 
             ax.autoscale_view()
 
+            subplot_i += 1
+
         fig.suptitle('Classification Scores on Bacteria Fluorescence Spectra')
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
@@ -445,16 +448,19 @@ class Experiment:
 
         Returns: a DataFrame detailing `n` configurations and their scores.
         """
-        df = self._results_df()
+        results = self._results_df()
+        results['mean_score'] = results['mean_score'].map('{:.2f}'.format)
+        results['score_std'] = 2 * results['score_std']
+        results['score_std'] = results['score_std'].map('{:.2f}'.format)
 
-        best = df.sort_values(by=['mean_score', 'score_std'],
-                              ascending=[False, True])
-        best = best.reset_index(drop=True)
-        best['mean_score'] = best['mean_score'].map('{:.2f}'.format)
-        best['score_std'] = 2 * best['score_std']
-        best['score_std'] = best['score_std'].map('{:.2f}'.format)
+        results = results.sort_values(
+            by=['mean_score', 'score_std', 'integration_time'], 
+            ascending=[False, True, True]
+        )
 
-        return best.head(n)
+        results = results.reset_index(drop=True)
+
+        return results.head(n)
 
 
 class GramnessExperiment(Experiment):
