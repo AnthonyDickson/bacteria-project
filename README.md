@@ -84,6 +84,7 @@ The architecture of the convolutional neural network (CNN) model that is used is
 |Trainable params: 6,918 (6,466*)                                                   |
 |Non-trainable params: 0                                                            |
 |* *If using a single growth phase.*                                                |
+
 *N in the output shape is the batch size which changes between training and testing.*
 
 A global average pooling layer is used instead of flattening. It significantly reduces the dimensionality of the output of convolutional layers and allows the output to be fed directly into the softmax layer. 
