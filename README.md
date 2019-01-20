@@ -1,17 +1,32 @@
 # Classification of Bacteria with Fluorescence Spectra
 In this project a series of machine-learning algorithms are used to try classify bacteria based on fluorescence spectra data. Two main series of experiments are done: the first on predicting the species of a given bacteria sample, and the second on predicting whether a given bacteria sample would test positive or negative in the gram stain test.
 
-## Getting Started
+# Table of Contents
+
+* [1. Getting Started](#getting-started)
+* [2. Data](#data)
+* [3. Models](#models)
+* [4. Methodology](#methodology)
+* [5. Other Experiments](#other-experiments)
+    * [5.1. Upsampling](#upsampling)
+    * [5.2. CNN with Separate Kernels for Each Growth Phase](#cnn-with-separate-kernels-for-each-growth-phase)
+* [6. Summary of Results](#summary-of-results)
+    * [6.1. Species Classification](#species-classification)
+    * [6.2. Gram-ness Classification](#gram-ness-classification)
+* [Appendix I: SVM Parameters](#appendix-i-svm-parameters)
+* [Appendix II: CNN Parameters](#appendix-ii-cnn-parameters)
+
+## 1. Getting Started
 1. If you are using conda you can create the conda environment used for the project with command:
     ```shell
     $ conda env create -f environment.yml
     ```
 
-    Otherwise, make sure you python environment is set up with packages listed in the file `environment.yml`
+    Otherwise, make sure your python environment is set up with packages listed in the file `environment.yml`
 2. Open the jupyter notebook `Data Preparation.ipynb` and run it.
 3. Open and run one of the jupyter notebooks in the root directory or in the directory `other_experiments/`.
 
-## Data
+## 2. Data
 The data consists of fluorescence spectra readings from six different species of bacteria: Bacillus cereus, Listeria monocytogenes, Staphylococcus aureus, Salmonella enterica, Escherichia coli, and Pseudomonas aureginosa.
 For each bacteria sample there are spectra readings for about 1043 different wavelengths of light and the three growth phases: lag, log, and stat. This means that for each bacteria sample there are 3 * 1043 data points. 
 Furthermore, the spectra readings are generated with two different integration times, 16ms and 32ms. 
@@ -57,7 +72,7 @@ There are two sets of labels used for classification:
 
 Refer to the notebooks `Data Preparation.ipynb` and `Data Analysis.ipynb` for more details about the dataset and data. 
 
-## Models
+## 3. Models
 The models used in the experiments are:
 1. Naive Bayes
 2. SVM
@@ -67,11 +82,13 @@ The models used in the experiments are:
 6. AdaBoost with Decision Trees.
 7. Convolutional Neural Network
 
-Additionally, the parameters 'C', 'gamma', and 'kernel' are optimised for the SVM model via grid search. The score given for the SVM model is the model initialised with the best parameters found in this parameter search.
+Additionally, the parameters 'C', 'gamma', and 'kernel' are optimised for the SVM model via grid search. The score given for the SVM model is the model initialised with the best parameters found in this parameter search. See [Appendix I: SVM Parameters](#appendix-i-svm-parameters) for more details.
+
 The decision stumps/trees used with AdaBoost and RandomForest are tested with a max tree depth of 1 (for decision stumps) and 3. 
 RandomForest models are tested with 512 classifiers and AdaBoost with 256 classifiers.
 
-The architecture of the convolutional neural network (CNN) model that is used is as follows:
+
+**Table 1.** Convolutional neural network architecture used for generating results.
 
 |Layer (type)                |# Kernels |Kernel Shape|Output Shape  |# Params    |
 |----------------------------|----------|------------|--------------|------------|
@@ -91,7 +108,7 @@ A global average pooling layer is used instead of flattening. It significantly r
 This way fully connected layers are not necessary and the number of parameters in the model are kept to a minimum. 
 The CNN is trained with the RMSprop optimiser using the default settings.
 
-## Methodology
+## 4. Methodology
 For each experiment a sequence of tests which evaluate the performance of various models are run.  
 An experiment is run for the entire dataset and again for each subset of the dataset, where a subset is simply the data from a single growth phase. 
 In each experiment I run the same series of tests twice, once for each integration time. 
@@ -105,7 +122,8 @@ Scores are given for both the untransformed data and the PCA data and each score
 
 To help prevent overfitting the CNN I first train a single instance of the CNN model before performing cross-validation. 
 I train the model for 1000 episodes and use early stopping so that training is stopped if the validation loss does not decrease for more than 10 epochs. 
-I then round the epoch number that the training stopped on down the nearest 100. 
+I then round the epoch number that the training stopped on down the nearest 100.
+For the number of epochs used in the final experiments see [Appendix II: CNN Parameters](#appendix-ii-cnn-parameters).
 
 The random state is set to the same value across different modules (e.g. train_test_split, RandomForest initialisation) to ensure results can be reproduced consistently. 
 I have not covered every case or have I even been very thorough with this, but I believe I have done enough to ensure that the data is always split in the same way and ensemble models like RandomForest have the same sub-models.
@@ -114,15 +132,15 @@ Brief summaries of the results are given with a table listing the top five confi
 The black lines on the bars in the bar chart indicate the +/- two standard deviation ranges.
 
 The code for these experiments can be found in python package `experiments`.
-Results can be found in the jupyter notebooks `Classification-Species.ipynb` and `Classification-Gramness.ipynb`. A summary of these results are given in the last section.
+The results can be found in the jupyter notebooks `Classification-Species.ipynb` and `Classification-Gramness.ipynb`. A summary of these results are given in the last section.
 
-There are also a number of notebooks for ad-hoc experiments that were run separately. The code and results for these experiments can be found in the various notebooks under the directory `other_experiments/`. 
-Most of these individual experiments are covered in the two jupyter notebooks mentioned above. The notebooks that may be of interest are the notebooks that deal with upsampling and other CNN architectures, i.e. notebooks that end with `-upsampling.ipynb` or notebooks starting with `CNN-`.
+There are also a number of individual notebooks for other independent experiments. Most of these individual experiments are covered in the two jupyter notebooks mentioned above, however there are some experiments that are not. The code and results for these experiments can be found in the various notebooks under the directory `other_experiments/`. 
+The notebooks that may be of interest are the notebooks that deal with upsampling and other CNN architectures, i.e. notebooks that end with `-upsampling.ipynb` or notebooks starting with `CNN-`.
 
-# Other Experiments
-I also tried a few different experiments that were not covered by the two main notebooks, `Classification-Species.ipynb` and `Classification-Gramness.ipynb`, or included in final results. 
+# 5. Other Experiments
+I also tried a few different experiments that were not covered by the two main notebooks, `Classification-Species.ipynb` and `Classification-Gramness.ipynb`, and not included in final results. 
 
-## Upsampling
+## 5.1. Upsampling
 The first thing that I tried was upsampling the data so that each class had the same number of instances. 
 The dataset was first split into two portions: the first would be used for upsampling, and the second would be used as a test set and held out until the very end. 
 Then the SMOTE algorithm would be used on the first portion of the data to create a training set. 
@@ -130,95 +148,102 @@ A set of the models would then be tested using the same repeated stratified k-fo
 The best performing model would be selected and have its performance on the held-out test set.   
 The results were worse than classification without upsampling. 
 
-## CNN with Separate Kernels for Each Growth Phase
+## 5.2. CNN with Separate Kernels for Each Growth Phase
 In this experiment I try treating the data like an image and apply 2D convolution. The idea is that a 1D kernel applies the weights to every growth phase and the kernel may be too general and underfit. Treating the data as a 1043 x 3 image (1043 spectra readings by 3 growth phases) and using a 2D kernel may enable the model to learn kernels that are more specific to each growth phase and end up being more accurate.
 
 The only implementation changes that this required was adding an extra dimension to the feature data, which changed the shape of each sample from 1043 x 3 to 1043 x 3 x 1, and using 2D convolutions with 3 x 3 kernels with 'same' padding.
 In my experiments, this method did not provide any significant improvements in performance over using the same kernel for each growth phase. 
 The results can be compared in the jupyter notebooks `CNN-Species.ipynb` and `CNN-Species-Separate-Kernels.ipynb` in the directory `other_experiments/`.
 
-# Summary of Results
-## Species Classification
+# 6. Summary of Results
+Overall, the model that achieves the best classification score for both species classification and gram-nes classification is a SVM using the linear kernel. A summary of the results for species classifcation and gram-ness classifcation are given below. 
+For the full results, see the jupyter notebooks `Classification-Species.ipynb` and `Classification-Gramness.ipynb`.
+
+## 6.1. Species Classification
 Overall, none of models are able to produce good results when classifying bacteria species. The best classification accuracy was 59% (+/- 12%) using a SVM and the 32ms integration time data. 
 Since, in the case of using all growth phase data, there are about 12 samples in the majority class out of a total of 39 samples, the best score a classifier could get by consistently guessing the majority class would be around 30%. 
 So 59% is quite a bit better than random guessing, however it is still too unreliable for practical use. 
 
-### Top Configurations
-#### Lag Growth Phase
-|  | integration_time |           classifier |  dataset | mean_score | score_std |
-|--|------------------|----------------------|----------|------------|-----------|
-|1 |             32ms |                  svm | original |       0.54 |      0.19 |
-|2 |             32ms |                  svm |      pca |       0.54 |      0.20 |
-|3 |             16ms |                  svm | original |       0.50 |      0.19 |
-|4 |             32ms | random_forest_stumps | original |       0.49 |      0.08 |
-|5 |             16ms |                  svm |      pca |       0.48 |      0.19 |
+**Table 2.** best cross-validation scores classifying for species per growth phase, sorted by 'Mean Score'.
 
-#### Log Growth Phase
-|  | integration_time |           classifier |  dataset | mean_score | score_std |
-|--|------------------|----------------------|----------|------------|-----------|
-|1 |             16ms |        random_forest |      pca |       0.50 |      0.17 |
-|2 |             16ms |                  svm |      pca |       0.50 |      0.21 |
-|3 |             32ms |                  svm |      pca |       0.50 |      0.25 |
-|4 |             16ms | random_forest_stumps | original |       0.48 |      0.11 |
-|5 |             16ms |        random_forest | original |       0.48 |      0.18 |
+|  | Integration Time | Growth Phase |           Classifier |  Dataset | Mean Score | +/- 2 SD |
+|--|------------------|--------------|----------------------|----------|------------|----------|
+|1 |             32ms |          All |                  svm | original |       0.59 |     0.11 |
+|2 |             32ms |         Stat |                  svm | original |       0.59 |     0.19 |
+|3 |             32ms |          Lag |                  svm | original |       0.54 |     0.19 |
+|4 |             16ms |          Log |        random_forest |      pca |       0.50 |     0.17 |
 
-#### Stat Growth Phase
-|  | integration_time |           classifier |  dataset | mean_score | score_std |
-|--|------------------|----------------------|----------|------------|-----------|
-|1 |             32ms |                  svm | original |       0.59 |      0.19 |
-|2 |             32ms |                  svm |      pca |       0.56 |      0.19 |
-|3 |             32ms |        random_forest | original |       0.52 |      0.16 |
-|4 |             16ms |        random_forest | original |       0.52 |      0.17 |
-|5 |             32ms | random_forest_stumps | original |       0.51 |      0.15 |
-
-#### All Growth Phases
-|  | integration_time |           classifier |  dataset | mean_score | score_std |
-|--|------------------|----------------------|----------|------------|-----------|
-|1 |             32ms |                  svm | original |       0.59 |      0.11 |
-|2 |             32ms |                  svm |      pca |       0.59 |      0.11 |
-|3 |             16ms |                  svm | original |       0.59 |      0.14 |
-|4 |             16ms |                  svm |      pca |       0.59 |      0.14 |
-|5 |             32ms |        random_forest | original |       0.59 |      0.18 |
-
-## Gram-ness Classification
+## 6.2. Gram-ness Classification
 Classifying gram-ness seems to alleviate the class imbalance problem encountered when classifying bacteria species.
 
 Overall, the classification scores for gram-ness were much better than the scores for species classification. 
 Many models were able to achieve 98% (+/- 2~7%) accuracy on the 16ms integration time log growth phase data. 
 
-### Top Configurations
-#### Lag Growth Phase
-|  | integration_time |           classifier |  dataset | mean_score | score_std |
-|--|------------------|----------------------|----------|------------|-----------|
-|1 |             32ms |                  svm | original |       0.92 |      0.13 |
-|2 |             32ms |                  svm |      pca |       0.92 |      0.13 |
-|3 |             16ms |                  svm | original |       0.91 |      0.13 |
-|4 |             16ms |                  svm |      pca |       0.89 |      0.13 |
-|5 |             16ms | random_forest_stumps | original |       0.76 |      0.20 |
+**Table 3.** best cross-validation scores classifying for gram-ness per growth phase, sorted by 'Mean Score'.
 
-#### Log Growth Phase
-|  | integration_time |           classifier |  dataset | mean_score | score_std |
-|--|------------------|----------------------|----------|------------|-----------|
-|1 |             16ms |                  svm |      pca |       0.98 |      0.07 |
-|2 |             16ms |                  svm |      pca |       0.98 |      0.07 |
-|3 |             16ms | random_forest_stumps | original |       0.98 |      0.07 |
-|4 |             16ms |        random_forest | original |       0.98 |      0.07 |
-|5 |             16ms |             adaboost | original |       0.98 |      0.07 |
+|  | Integration Time | Growth Phase |           Classifier |  Dataset | Mean Score | +/- 2 SD |
+|--|------------------|--------------|----------------------|----------|------------|----------|
+|1 |             16ms |          Log |                  svm | original |       0.98 |     0.07 |
+|2 |             16ms |          All |                  svm | original |       0.97 |     0.07 |
+|3 |             32ms |         Stat |                  svm | original |       0.93 |     0.10 |
+|4 |             32ms |          Lag |                  svm | original |       0.92 |     0.13 |
 
-#### Stat Growth Phase
-|  | integration_time |           classifier |  dataset | mean_score | score_std |
-|--|------------------|----------------------|----------|------------|-----------|
-|1 |             32ms |                  svm | original |       0.93 |      0.10 |
-|2 |             32ms |                  svm |      pca |       0.93 |      0.10 |
-|3 |             16ms |                  svm | original |       0.93 |      0.11 |
-|4 |             16ms |                  svm |      pca |       0.93 |      0.11 |
-|5 |             32ms |                  cnn | original |       0.92 |      0.10 |
+# Appendix I: SVM Parameters
+It is often necessary to tune the SVM hyperparameters, or at least more so than the other classifiers that were used. 
+The three main parameters that are typically optimised in a SVM are  the parameters: 'gamma', 'C', and the kernel.
+The below tables list the 'best' combination of these parameters, as found via grid search, that were used in the experiments in the notebooks `Classification-Species.ipynb` and `Classification-Gramnes.ipynb`, respectively. 
 
-#### All Growth Phases
-|  | integration_time |           classifier |  dataset | mean_score | score_std |
-|--|------------------|----------------------|----------|------------|-----------|
-|1 |             16ms |                  svm | original |       0.97 |      0.07 |
-|2 |             16ms |                  svm |      pca |       0.97 |      0.07 |
-|3 |             32ms |                  svm | original |       0.97 |      0.07 |
-|4 |             32ms |                  svm |      pca |       0.97 |      0.07 |
-|5 |             32ms |             adaboost |      pca |       0.95 |      0.08 |
+**Table 4.** best SVM parameters for species classification.
+
+| Integration Time | Growth Phase | Gamma |     C | Kernel |
+|------------------|--------------|------:|------:|--------|
+|             16ms |          Lag |     1 |     1 | Linear |
+|             16ms |          Log |     1 |     1 | Linear |
+|             16ms |         Stat |     1 |   0.1 | Linear |
+|             16ms |          All |     1 |  0.01 | Linear |
+|             32ms |          Lag |     1 |     1 | Linear |
+|             32ms |          Log |     1 |    10 | Linear |
+|             32ms |         Stat |     1 |    10 | Linear |
+|             32ms |          All |  0.01 |     1 |    Rbf |
+
+**Table 5.** best SVM parameters for gram-ness classification.
+
+| Integration Time | Growth Phase | Gamma |     C | Kernel |
+|------------------|--------------|------:|------:|--------|
+|             16ms |          Lag |     1 |     1 | Linear |
+|             16ms |          Log |     1 |  0.01 | Linear |
+|             16ms |         Stat | 0.001 |     1 |    Rbf |
+|             16ms |          All | 0.001 |     1 |    Rbf |
+|             32ms |          Lag |     1 |   0.1 | Linear |
+|             32ms |          Log |     1 |  0.01 | Linear |
+|             32ms |         Stat | 0.001 |     1 |    Rbf |
+|             32ms |          All |     1 | 0.001 | Linear |
+
+# Appendix II: CNN Parameters
+The number of epochs that could be trained for before the model performance stops increasing and starts to overfit (i.e. the validation loss starts to increase) varies based on the subset of the dataset used. As such, the number of epochs that the CNN model is trained for is changed accordingly. The below tables list the number of epochs used in the experiments in the notebooks `Classification-Species.ipynb` and `Classification-Gramnes.ipynb`, respectively.
+
+**Table 6.** number of training epochs used during cross-validation in species classification, for each combination of growth phase and integration.
+
+| Integration Time | Growth Phase | Epochs |
+|------------------|--------------|--------|
+|             16ms |          Lag |    100 |
+|             16ms |          Log |    100 |
+|             16ms |         Stat |    100 |
+|             16ms |          All |    100 |
+|             32ms |          Lag |    100 |
+|             32ms |          Log |    200 |
+|             32ms |         Stat |    100 |
+|             32ms |          All |    100 |
+
+**Table 7.** number of training epochs used during cross-validation in gram-ness classification, for each combination of growth phase and integration.
+
+| Integration Time | Growth Phase | Epochs |
+|------------------|--------------|--------|
+|             16ms |          Lag |    100 |
+|             16ms |          Log |    100 |
+|             16ms |         Stat |    100 |
+|             16ms |          All |    600 |
+|             32ms |          Lag |    100 |
+|             32ms |          Log |    100 |
+|             32ms |         Stat |    100 |
+|             32ms |          All |    300 |
