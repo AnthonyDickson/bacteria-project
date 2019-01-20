@@ -3,16 +3,16 @@ In this project a series of machine-learning algorithms are used to try classify
 
 # Table of Contents
 
-* [1. Getting Started](#getting-started)
-* [2. Data](#data)
-* [3. Models](#models)
-* [4. Methodology](#methodology)
-* [5. Other Experiments](#other-experiments)
-    * [5.1. Upsampling](#upsampling)
-    * [5.2. CNN with Separate Kernels for Each Growth Phase](#cnn-with-separate-kernels-for-each-growth-phase)
-* [6. Summary of Results](#summary-of-results)
-    * [6.1. Species Classification](#species-classification)
-    * [6.2. Gram-ness Classification](#gram-ness-classification)
+* [1. Getting Started](#1-getting-started)
+* [2. Data](#2-data)
+* [3. Models](#3-models)
+* [4. Methodology](#4-methodology)
+* [5. Other Experiments](#5-other-experiments)
+    * [5.1. Upsampling](#5-1-upsampling)
+    * [5.2. CNN with Separate Kernels for Each Growth Phase](#5-2-cnn-with-separate-kernels-for-each-growth-phase)
+* [6. Summary of Results](#6-summary-of-results)
+    * [6.1. Species Classification](#6-1-species-classification)
+    * [6.2. Gram-ness Classification](#6-2-gram-ness-classification)
 * [Appendix I: SVM Parameters](#appendix-i-svm-parameters)
 * [Appendix II: CNN Parameters](#appendix-ii-cnn-parameters)
 
