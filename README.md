@@ -92,15 +92,16 @@ RandomForest models are tested with 512 classifiers and AdaBoost with 256 classi
 
 |Layer (type)                |# Kernels |Kernel Shape|Output Shape  |# Params    |
 |----------------------------|----------|------------|--------------|------------|
-|conv1d (Conv1D)             |32        |3           |(N, 1041, 32) |320         |
-|conv1d_1 (Conv1D)           |64        |3           |(N, 1039, 64) |6208        |
-|global_average_pooling1d (Gl|-         |-           |(N, 64)       |0           |
-|dense (Dense)               |          |            |(N, 6)        |390 (130*)  |
-|                                                                                   |
-|Total params: 6,918 (6,466*)                                                       |
-|Trainable params: 6,918 (6,466*)                                                   |
-|Non-trainable params: 0                                                            |
-|* *If using a single growth phase.*                                                |
+|Conv1D                      |32        |3           |(N, 1041, 32) |320         |
+|Conv1D                      |64        |3           |(N, 1039, 64) |6208        |
+|GlobalAveragePooling1D      |-         |-           |(N, 64)       |0           |
+|Dense                       |          |            |(N, 6)*       |390 (130**) |
+|                                                                                |
+|Total params: 6,918 (6,466**)                                                   |
+|Trainable params: 6,918 (6,466**)                                               |
+|Non-trainable params: 0                                                         |
+|* *(N, 2) If classifying for gram-ness.*                                        |
+|** *If using a single growth phase.*                                            |
 
 *N in the output shape is the batch size which changes between training and testing.*
 
