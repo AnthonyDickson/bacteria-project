@@ -84,11 +84,12 @@ The models used in the experiments are:
 
 Additionally, the parameters 'C', 'gamma', and 'kernel' are optimised for the SVM model via grid search. The score given for the SVM model is the model initialised with the best parameters found in this parameter search. See [Appendix I: SVM Parameters](#appendix-i-svm-parameters) for more details.
 
-The decision stumps/trees used with AdaBoost and RandomForest are tested with a max tree depth of 1 (for decision stumps) and 3. 
+The decision stumps/trees used with AdaBoost and RandomForest are tested with a max tree depth of one (for decision stumps) and three. 
 RandomForest models are tested with 512 classifiers and AdaBoost with 256 classifiers.
 
 
-**Table 1.** Convolutional neural network architecture used for generating results.
+**Table 1.** Convolutional neural network architecture used for generating results. 
+*N* in the output shape is the batch size which changes between training and testing.
 
 |Layer (type)                |# Kernels |Kernel Shape|Output Shape  |# Params    |
 |----------------------------|----------|------------|--------------|------------|
@@ -102,8 +103,6 @@ RandomForest models are tested with 512 classifiers and AdaBoost with 256 classi
 |Non-trainable params: 0                                                         |
 |* *(N, 2) If classifying for gram-ness.*                                        |
 |** *If using a single growth phase.*                                            |
-
-*N in the output shape is the batch size which changes between training and testing.*
 
 A global average pooling layer is used instead of flattening. It significantly reduces the dimensionality of the output of convolutional layers and allows the output to be fed directly into the softmax layer. 
 This way fully connected layers are not necessary and the number of parameters in the model are kept to a minimum. 
