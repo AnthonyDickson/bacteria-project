@@ -21,6 +21,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils import shuffle
+from xgboost import XGBClassifier
 
 
 def timed(func):
@@ -125,7 +126,8 @@ class Experiment:
             'adaboost':
                 lambda it: self.adaboost_test(it,
                                               n_estimators=256,
-                                              max_depth=3)
+                                              max_depth=3),
+            'xgboost': lambda it: self.xgboost_test(it)
 
         }
 
@@ -344,6 +346,42 @@ class Experiment:
 
         return self.get_results(clf, integration_time)
 
+    @timed
+    def xgboost_test(self, integration_time):
+        """Run a classification test using a XGBoost classifier.
+
+        Also perform grid search to find the best parameters for the XGBoost.
+
+        Arguments:
+            integration_time: The integration time of the data to use for
+                              classification. Must be one of '16ms' or '32ms'.
+
+        Returns: A dictionary containing a list of scores for the 'original'
+                 (not transformed) X data set and the pca data set.
+        """
+        status = 'Running XGBoost tests.'
+        print('*' * len(status))
+        print(status)
+        print('*' * len(status))
+
+        param_grid = {
+            'max_depth': [2 ** n for n in range(4)],
+            'learning_rate': [10 ** n for n in range(-4, 0)]
+        }
+
+        _, X_pca, y = self._get_X_y(integration_time)        
+
+        clf = XGBClassifier(n_estimators=128, n_jobs=self.n_jobs, random_state=42)
+
+        grid_search = GridSearchCV(clf, param_grid, cv=self.cv, iid=True,
+                                   verbose=1, n_jobs=self.n_jobs)
+        grid_search.fit(X_pca, y)
+
+        print('Best grid search score was %.2f with the following settings: %s'
+              % (grid_search.best_score_, grid_search.best_params_))
+
+        return self.get_results(grid_search.best_estimator_, integration_time)
+
     def _results_df(self):
         """Create a pandas DataFrame from the results dictionary.
 
@@ -377,9 +415,9 @@ class Experiment:
 
         df = self._results_df()
 
-        n_rows = 1
-        n_cols = 2
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(22, 8), sharey=True)
+        n_rows = 2
+        n_cols = 1
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(16, 11), sharey=True)
         subplot_i = 0
 
         for ax, it in zip(axes, ['16ms', '32ms']):
