@@ -371,7 +371,8 @@ class Experiment:
 
         _, X_pca, y = self._get_X_y(integration_time)        
 
-        clf = XGBClassifier(n_estimators=128, n_jobs=self.n_jobs, random_state=42)
+        clf = XGBClassifier(n_estimators=128, n_jobs=self.n_jobs, 
+                            random_state=self.random_seed)
 
         grid_search = GridSearchCV(clf, param_grid, cv=self.cv, iid=True,
                                    verbose=1, n_jobs=self.n_jobs)
@@ -459,7 +460,7 @@ class Experiment:
                             ha='left', va='bottom')
 
             # Add legend to the right of the last plot. #
-            if subplot_i == n_rows * n_cols:
+            if subplot_i + 1 == n_rows * n_cols:
                 ax.legend((original_barplot[0], pca_barplot[0]),
                           ('None', 'PCA'),
                           title='Transform',
@@ -470,9 +471,6 @@ class Experiment:
             ax.autoscale_view()
 
             subplot_i += 1
-
-        fig.suptitle('Classification Scores on Bacteria Fluorescence Spectra')
-        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
         return fig, axes
 

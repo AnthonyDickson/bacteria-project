@@ -84,8 +84,9 @@ The models used in the experiments are:
 3. RandomForest with Decision Stumps
 4. RandomForest with Decision Trees
 5. AdaBoost with Decision Stumps
-6. AdaBoost with Decision Trees.
-7. Convolutional Neural Network
+6. AdaBoost with Decision Trees
+7. XGBoost
+8. Convolutional Neural Network
 
 Additionally, the parameters 'C', 'gamma', and 'kernel' are optimised for the SVM model via grid search. The score given for the SVM model is the model initialised with the best parameters found in this parameter search. See [Appendix I: SVM Parameters](#appendix-i-svm-parameters) for more details.
 
