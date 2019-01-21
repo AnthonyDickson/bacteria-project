@@ -28,18 +28,23 @@ In this project a series of machine-learning algorithms are used to try classify
 
 ## 2. Data
 The data consists of fluorescence spectra readings from six different species of bacteria: Bacillus cereus, Listeria monocytogenes, Staphylococcus aureus, Salmonella enterica, Escherichia coli, and Pseudomonas aureginosa.
-For each bacteria sample there are spectra readings for about 1043 different wavelengths of light and the three growth phases: lag, log, and stat. This means that for each bacteria sample there are 3 * 1043 data points. 
+In the dataset these are referred to as 'bc', 'lm', 'sa', 'se', 'ec', and 'pa', respectively.
+For each bacteria sample there are spectra readings for about 1043 different wavelengths of light (from ~395 nm to ~785 nm) and the three growth phases: lag, log, and stationary. This means that for each bacteria sample there are 3 * 1043 data points. 
+
 Furthermore, the spectra readings are generated with two different integration times, 16ms and 32ms. 
 Integration time is the time spent gathering each fluorescence spectra reading. 
 Shorter integration times are preferred.
 
-When looking at a single growth phase, the data for just that growth phase is used as-is. 
-However when using all growth phases, the bacteria samples that do not have data for all three growth phases are discarded. 
+The original csv file (`data/16ms_32ms_growth_phase_spectra.csv`) has the columns 'wavelength', 'bc01_16ms_lag', 'bc02_16ms_lag', ... , 'sa08_32ms_stat'. In order to facilitate eaiser indexing and manipulation of the data I reorganised the data.
+The first thing I did was split the data into two sets of data: 16ms integration time data, and 32ms integration time data which are exported as two csv files (`data/bacteria_16ms.csv` and `data/bacteria_32ms.csv`). 
+I then reorganised the data so that the columns were hirearchically indexed by growth phase, gram-positive/gram-negative, bacteria species, and then replicate number. 
+
+When using just a single growth phase for classification, the data for just that growth phase is used as-is. 
+However when using all growth phases, the bacteria samples that do not have data for all three growth phases are discarded and for each bacteria sample the data from each growth phase are concatenated into a single row. 
 There are 47, 41, and 47 bacteria samples for the lag, log and stationary growth phases, respectively. 
 There are 39 bacteria samples with data for all three growth phases, and thus the number of samples used when looking at all the growth phases together is also 39. 
-The class balance within each of the subsets are analysed in the jupyter notebook `Data Analysis.ipynb`.
-
-Within each bacteria species there are a number of replicates. A replicate is a copy of the bacteria species at possibly different concentration levels.
+This resulting shape of the data when using all growth phases is thus 39 samples by 3129 spectra readings.
+The class balance within each of the subsets are looked at in the jupyter notebook `Data Analysis.ipynb`.
 
 There are some large numbers in the dataset (some spectra readings exceed 25,000).
 This poses a problem when training SVM models that use the linear kernel as the linear kernel is very slow for large values. 
@@ -52,23 +57,23 @@ Ignoring relative scale and scaling on a per-feature basis worsens classificatio
 
 There are two sets of labels used for classification: 
 1.  the species of a given bacteria sample, which are:
-    - Bacillus Cereus (bc)
-    - Escherichia Coli (ec)
-    - Listeria Monocytogenes (lm)
-    - Pseudomonas Aureginosa (pa)
-    - Staphylococcus Aureus (sa) 
-    - Salmonella Enterica (se)
+    - Bacillus cereus
+    - Escherichia coli
+    - Listeria monocytogenes
+    - Pseudomonas aureginosa
+    - Staphylococcus aureus 
+    - Salmonella enterica
 
 2. the 'gram-ness' of a given bacteria sample, i.e. whether the given bacteria would test positive or negative in the [gram stain test](https://en.wikipedia.org/wiki/Gram_stain). The groupings for the bacteria in the dataset are:
     - Gram-positive
-        - Bacillus Cereus 
-        - Listeria Monocytogenes
-        - Staphylococcus Aureus 
+        - Bacillus cereus 
+        - Listeria monocytogenes
+        - Staphylococcus aureus 
 
     - Gram-negative
-        - Escherichia Coli
-        - Pseudomonas Aureginosa
-        - Salmonella Enterica
+        - Escherichia coli
+        - Pseudomonas aureginosa
+        - Salmonella enterica
 
 Refer to the notebooks `Data Preparation.ipynb` and `Data Analysis.ipynb` for more details about the dataset and data. 
 
@@ -149,7 +154,7 @@ The best performing model would be selected and have its performance on the held
 The results were worse than classification without upsampling. 
 
 ## 5.2. CNN with Separate Kernels for Each Growth Phase
-In this experiment I try treating the data like an image and apply 2D convolution. The idea is that a 1D kernel applies the weights to every growth phase and the kernel may be too general and underfit. Treating the data as a 1043 x 3 image (1043 spectra readings by 3 growth phases) and using a 2D kernel may enable the model to learn kernels that are more specific to each growth phase and end up being more accurate.
+In this experiment I tried treating the data like an image and applying 2D convolution. The idea is that a 1D kernel applies the same weights to every growth phase and the kernel may be too general and underfit. Treating the data as a 1043 x 3 image (1043 spectra readings by 3 growth phases) and using a 2D kernel may enable the model to learn kernels that are more specific to each growth phase and end up being more accurate.
 
 The only implementation changes that this required was adding an extra dimension to the feature data, which changed the shape of each sample from 1043 x 3 to 1043 x 3 x 1, and using 2D convolutions with 3 x 3 kernels with 'same' padding.
 In my experiments, this method did not provide any significant improvements in performance over using the same kernel for each growth phase. 
